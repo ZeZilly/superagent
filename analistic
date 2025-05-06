@@ -1,0 +1,1694 @@
+// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Slider } from "@/components/ui/slider";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination, Autoplay } from 'swiper/modules';
+import * as echarts from 'echarts';
+const App: React.FC = () => {
+const [showProfileMenu, setShowProfileMenu] = useState(false);
+const [showNotifications, setShowNotifications] = useState(false);
+const profileMenuRef = useRef<HTMLDivElement>(null);
+const [dateRange, setDateRange] = useState<{
+from: Date | undefined;
+to: Date | undefined;
+}>({
+from: new Date(new Date().setDate(new Date().getDate() - 30)),
+to: new Date()
+});
+const [selectedFilter, setSelectedFilter] = useState("all");
+const [selectedTimeframe, setSelectedTimeframe] = useState("30d");
+const [exportFormat, setExportFormat] = useState("csv");
+const [showExportOptions, setShowExportOptions] = useState(false);
+// Chart references
+const apiUsageChartRef = useRef<HTMLDivElement>(null);
+const endpointUsageChartRef = useRef<HTMLDivElement>(null);
+const responseTimeChartRef = useRef<HTMLDivElement>(null);
+const errorRateChartRef = useRef<HTMLDivElement>(null);
+const geoDistributionChartRef = useRef<HTMLDivElement>(null);
+const peakUsageChartRef = useRef<HTMLDivElement>(null);
+useEffect(() => {
+const handleClickOutside = (event: MouseEvent) => {
+if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+setShowProfileMenu(false);
+}
+};
+document.addEventListener('mousedown', handleClickOutside);
+return () => {
+document.removeEventListener('mousedown', handleClickOutside);
+};
+}, []);
+useEffect(() => {
+if (apiUsageChartRef.current) {
+const chart = echarts.init(apiUsageChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'axis',
+axisPointer: {
+type: 'shadow'
+}
+},
+grid: {
+left: '3%',
+right: '4%',
+bottom: '3%',
+containLabel: true
+},
+legend: {
+data: ['API Calls', 'Successful Calls', 'Failed Calls'],
+textStyle: {
+color: '#aaa'
+},
+top: 0
+},
+xAxis: [
+{
+type: 'category',
+data: ['Jan 1', 'Jan 5', 'Jan 10', 'Jan 15', 'Jan 20', 'Jan 25', 'Jan 30', 'Feb 5', 'Feb 10', 'Feb 15', 'Feb 20', 'Feb 25', 'Mar 1', 'Mar 5', 'Mar 10', 'Mar 15', 'Mar 20', 'Mar 25', 'Apr 1', 'Apr 5'],
+axisTick: {
+alignWithLabel: true
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa',
+rotate: 45,
+fontSize: 10
+}
+}
+],
+yAxis: [
+{
+type: 'value',
+name: 'API Calls',
+nameTextStyle: {
+color: '#aaa'
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+},
+splitLine: {
+lineStyle: {
+color: '#333'
+}
+}
+}
+],
+series: [
+{
+name: 'API Calls',
+type: 'line',
+data: [320, 332, 301, 334, 390, 330, 320, 350, 410, 420, 450, 470, 490, 510, 520, 550, 570, 590, 610, 650],
+smooth: true,
+lineStyle: {
+width: 3,
+color: '#3b82f6'
+},
+itemStyle: {
+color: '#3b82f6'
+},
+areaStyle: {
+color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+{ offset: 0, color: 'rgba(59, 130, 246, 0.5)' },
+{ offset: 1, color: 'rgba(59, 130, 246, 0.1)' }
+])
+}
+},
+{
+name: 'Successful Calls',
+type: 'line',
+data: [290, 310, 280, 320, 370, 310, 300, 330, 390, 400, 430, 450, 470, 490, 500, 530, 550, 570, 590, 630],
+smooth: true,
+lineStyle: {
+width: 3,
+color: '#10b981'
+},
+itemStyle: {
+color: '#10b981'
+}
+},
+{
+name: 'Failed Calls',
+type: 'line',
+data: [30, 22, 21, 14, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
+smooth: true,
+lineStyle: {
+width: 3,
+color: '#ef4444'
+},
+itemStyle: {
+color: '#ef4444'
+}
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+useEffect(() => {
+if (endpointUsageChartRef.current) {
+const chart = echarts.init(endpointUsageChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'axis',
+axisPointer: {
+type: 'shadow'
+}
+},
+legend: {
+data: ['Generate', 'Translate', 'Analyze', 'Models', 'Usage'],
+textStyle: {
+color: '#aaa'
+},
+top: 0
+},
+grid: {
+left: '3%',
+right: '4%',
+bottom: '3%',
+containLabel: true
+},
+xAxis: [
+{
+type: 'category',
+data: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8'],
+axisTick: {
+alignWithLabel: true
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+}
+}
+],
+yAxis: [
+{
+type: 'value',
+name: 'Calls',
+nameTextStyle: {
+color: '#aaa'
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+},
+splitLine: {
+lineStyle: {
+color: '#333'
+}
+}
+}
+],
+series: [
+{
+name: 'Generate',
+type: 'bar',
+stack: 'total',
+emphasis: {
+focus: 'series'
+},
+data: [120, 132, 101, 134, 90, 230, 210, 240],
+itemStyle: {
+color: '#3b82f6'
+}
+},
+{
+name: 'Translate',
+type: 'bar',
+stack: 'total',
+emphasis: {
+focus: 'series'
+},
+data: [220, 182, 191, 234, 290, 330, 310, 320],
+itemStyle: {
+color: '#8b5cf6'
+}
+},
+{
+name: 'Analyze',
+type: 'bar',
+stack: 'total',
+emphasis: {
+focus: 'series'
+},
+data: [150, 232, 201, 154, 190, 330, 410, 430],
+itemStyle: {
+color: '#10b981'
+}
+},
+{
+name: 'Models',
+type: 'bar',
+stack: 'total',
+emphasis: {
+focus: 'series'
+},
+data: [80, 132, 101, 134, 90, 230, 210, 240],
+itemStyle: {
+color: '#f59e0b'
+}
+},
+{
+name: 'Usage',
+type: 'bar',
+stack: 'total',
+emphasis: {
+focus: 'series'
+},
+data: [50, 82, 91, 84, 90, 130, 110, 120],
+itemStyle: {
+color: '#ec4899'
+}
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+useEffect(() => {
+if (responseTimeChartRef.current) {
+const chart = echarts.init(responseTimeChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'axis',
+axisPointer: {
+type: 'shadow'
+}
+},
+grid: {
+left: '3%',
+right: '4%',
+bottom: '3%',
+containLabel: true
+},
+xAxis: [
+{
+type: 'category',
+data: ['<100ms', '100-200ms', '200-300ms', '300-400ms', '400-500ms', '>500ms'],
+axisTick: {
+alignWithLabel: true
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+}
+}
+],
+yAxis: [
+{
+type: 'value',
+name: 'Requests',
+nameTextStyle: {
+color: '#aaa'
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+},
+splitLine: {
+lineStyle: {
+color: '#333'
+}
+}
+}
+],
+series: [
+{
+name: 'Response Time',
+type: 'bar',
+barWidth: '60%',
+data: [1200, 1800, 900, 300, 100, 50],
+itemStyle: {
+color: function(params: any) {
+const colorList = [
+'#10b981', '#34d399', '#f59e0b', '#fb923c', '#f87171', '#ef4444'
+];
+return colorList[params.dataIndex];
+}
+}
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+useEffect(() => {
+if (errorRateChartRef.current) {
+const chart = echarts.init(errorRateChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'item'
+},
+legend: {
+top: '0%',
+textStyle: {
+color: '#aaa'
+}
+},
+series: [
+{
+name: 'Error Rate',
+type: 'pie',
+radius: ['40%', '70%'],
+avoidLabelOverlap: false,
+itemStyle: {
+borderRadius: 10,
+borderColor: '#0f0f13',
+borderWidth: 2
+},
+label: {
+show: false,
+position: 'center'
+},
+emphasis: {
+label: {
+show: true,
+fontSize: 16,
+fontWeight: 'bold',
+color: '#fff'
+}
+},
+labelLine: {
+show: false
+},
+data: [
+{ value: 92, name: 'Generate', itemStyle: { color: '#3b82f6' } },
+{ value: 38, name: 'Translate', itemStyle: { color: '#8b5cf6' } },
+{ value: 24, name: 'Analyze', itemStyle: { color: '#10b981' } },
+{ value: 18, name: 'Models', itemStyle: { color: '#f59e0b' } },
+{ value: 8, name: 'Usage', itemStyle: { color: '#ec4899' } }
+]
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+useEffect(() => {
+if (geoDistributionChartRef.current) {
+const chart = echarts.init(geoDistributionChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'item',
+formatter: '{a} <br/>{b}: {c} ({d}%)'
+},
+legend: {
+top: '0%',
+textStyle: {
+color: '#aaa'
+}
+},
+series: [
+{
+name: 'Geographic Distribution',
+type: 'pie',
+radius: '70%',
+center: ['50%', '55%'],
+data: [
+{ value: 1048, name: 'North America', itemStyle: { color: '#3b82f6' } },
+{ value: 735, name: 'Europe', itemStyle: { color: '#10b981' } },
+{ value: 580, name: 'Asia', itemStyle: { color: '#f59e0b' } },
+{ value: 300, name: 'South America', itemStyle: { color: '#8b5cf6' } },
+{ value: 200, name: 'Africa', itemStyle: { color: '#ec4899' } },
+{ value: 100, name: 'Oceania', itemStyle: { color: '#64748b' } }
+],
+emphasis: {
+itemStyle: {
+shadowBlur: 10,
+shadowOffsetX: 0,
+shadowColor: 'rgba(0, 0, 0, 0.5)'
+}
+}
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+useEffect(() => {
+if (peakUsageChartRef.current) {
+const chart = echarts.init(peakUsageChartRef.current);
+const option = {
+animation: false,
+tooltip: {
+trigger: 'axis',
+axisPointer: {
+type: 'shadow'
+}
+},
+grid: {
+left: '3%',
+right: '4%',
+bottom: '3%',
+containLabel: true
+},
+xAxis: [
+{
+type: 'category',
+data: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+axisTick: {
+alignWithLabel: true
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+}
+}
+],
+yAxis: [
+{
+type: 'value',
+name: 'Requests',
+nameTextStyle: {
+color: '#aaa'
+},
+axisLine: {
+lineStyle: {
+color: '#555'
+}
+},
+axisLabel: {
+color: '#aaa'
+},
+splitLine: {
+lineStyle: {
+color: '#333'
+}
+}
+}
+],
+series: [
+{
+name: 'Requests',
+type: 'bar',
+barWidth: '60%',
+data: [120, 80, 60, 350, 480, 520, 420, 280],
+itemStyle: {
+color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+{ offset: 0, color: '#8b5cf6' },
+{ offset: 1, color: '#3b82f6' }
+])
+}
+}
+]
+};
+chart.setOption(option);
+const handleResize = () => {
+chart.resize();
+};
+window.addEventListener('resize', handleResize);
+return () => {
+chart.dispose();
+window.removeEventListener('resize', handleResize);
+};
+}
+}, []);
+return (
+<div className="min-h-screen bg-[#0f0f13] text-white">
+{/* Header */}
+<header className="border-b border-gray-800 bg-[#161620]">
+<div className="flex items-center justify-between px-6 h-16">
+<div className="flex items-center space-x-6">
+<div className="flex items-center space-x-2">
+<div className="h-8 w-8 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+<i className="fas fa-bolt text-white"></i>
+</div>
+<span className="text-lg font-semibold tracking-tight">Databutton</span>
+</div>
+<div className="hidden md:flex items-center space-x-1">
+<Button variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-[#252530] !rounded-button whitespace-nowrap cursor-pointer">
+Dashboard
+</Button>
+<Button variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-[#252530] !rounded-button whitespace-nowrap cursor-pointer">
+Projects
+</Button>
+<a
+href="https://readdy.ai/home/d06afc50-29d6-42d6-a954-e6f8a0b7deb1/15ac6e7a-19ae-41b2-9536-98219060b3cf"
+data-readdy="true"
+className="inline-block"
+>
+<Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-[#252530] !rounded-button whitespace-nowrap cursor-pointer">
+<i className="fas fa-chart-bar mr-1"></i>
+Analytics
+</Button>
+</a>
+<Button variant="ghost" size="sm" className="text-gray-300 hover:text-white hover:bg-[#252530] !rounded-button whitespace-nowrap cursor-pointer">
+Documentation
+</Button>
+</div>
+</div>
+<div className="flex items-center space-x-4">
+<div className="relative">
+<Button
+variant="ghost"
+size="icon"
+className="text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer"
+onClick={() => setShowNotifications(!showNotifications)}
+>
+<i className="fas fa-bell"></i>
+</Button>
+<div className="absolute top-0 right-0 h-2 w-2 rounded-full bg-blue-500"></div>
+{showNotifications && (
+<div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-[#1a1a25] border border-gray-700 z-50">
+<div className="p-3 border-b border-gray-700">
+<div className="flex justify-between items-center">
+<h3 className="text-sm font-medium">Notifications</h3>
+<Button variant="ghost" size="sm" className="text-xs text-blue-400 hover:text-blue-300 !rounded-button whitespace-nowrap cursor-pointer">
+Mark all as read
+</Button>
+</div>
+</div>
+<div className="max-h-[320px] overflow-y-auto">
+<div className="p-3 hover:bg-[#252530] border-b border-gray-700 cursor-pointer">
+<div className="flex items-start">
+<div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-3 mt-0.5">
+<i className="fas fa-chart-line text-blue-400 text-sm"></i>
+</div>
+<div>
+<p className="text-sm text-gray-200">API usage spike detected</p>
+<p className="text-xs text-gray-400 mt-1">Unusual activity on /api/v1/generate endpoint</p>
+<p className="text-xs text-gray-500 mt-2">10 minutes ago</p>
+</div>
+</div>
+</div>
+<div className="p-3 hover:bg-[#252530] border-b border-gray-700 cursor-pointer">
+<div className="flex items-start">
+<div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center mr-3 mt-0.5">
+<i className="fas fa-check text-green-400 text-sm"></i>
+</div>
+<div>
+<p className="text-sm text-gray-200">Analytics report ready</p>
+<p className="text-xs text-gray-400 mt-1">Monthly performance report is available</p>
+<p className="text-xs text-gray-500 mt-2">1 hour ago</p>
+</div>
+</div>
+</div>
+<div className="p-3 hover:bg-[#252530] border-b border-gray-700 cursor-pointer">
+<div className="flex items-start">
+<div className="h-8 w-8 rounded-full bg-purple-500/20 flex items-center justify-center mr-3 mt-0.5">
+<i className="fas fa-user-plus text-purple-400 text-sm"></i>
+</div>
+<div>
+<p className="text-sm text-gray-200"><span className="font-medium">Sarah</span> joined the team</p>
+<p className="text-xs text-gray-400 mt-1">Added as Data Analyst</p>
+<p className="text-xs text-gray-500 mt-2">3 hours ago</p>
+</div>
+</div>
+</div>
+<div className="p-3 hover:bg-[#252530] cursor-pointer">
+<div className="flex items-start">
+<div className="h-8 w-8 rounded-full bg-yellow-500/20 flex items-center justify-center mr-3 mt-0.5">
+<i className="fas fa-exclamation-triangle text-yellow-400 text-sm"></i>
+</div>
+<div>
+<p className="text-sm text-gray-200">API usage approaching limit</p>
+<p className="text-xs text-gray-400 mt-1">85% of monthly quota used</p>
+<p className="text-xs text-gray-500 mt-2">1 day ago</p>
+</div>
+</div>
+</div>
+</div>
+<div className="p-2 border-t border-gray-700">
+<Button variant="ghost" size="sm" className="w-full text-center text-sm text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button whitespace-nowrap cursor-pointer">
+View all notifications
+</Button>
+</div>
+</div>
+)}
+</div>
+<div className="h-6 w-px bg-gray-700"></div>
+<div className="relative">
+<div
+className="flex items-center space-x-2 cursor-pointer"
+onClick={() => setShowProfileMenu(!showProfileMenu)}
+>
+<Avatar className="h-8 w-8 border border-gray-700">
+<AvatarImage src="https://public.readdy.ai/ai/img_res/8a358fd5b1394f123d027802bdd7d682.jpg" />
+<AvatarFallback>JD</AvatarFallback>
+</Avatar>
+<div className="hidden md:block">
+<p className="text-sm font-medium">John Doe</p>
+<p className="text-xs text-gray-400">Admin</p>
+</div>
+<i className="fas fa-chevron-down text-xs text-gray-400"></i>
+</div>
+{showProfileMenu && (
+<div ref={profileMenuRef} className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-[#1a1a25] border border-gray-700 z-50">
+<div className="p-2">
+<div className="px-3 py-2 text-sm text-gray-400">
+Signed in as <span className="font-medium text-white">john.doe@example.com</span>
+</div>
+<div className="border-t border-gray-700 my-1"></div>
+<button className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-user mr-2 w-4 text-gray-400"></i>
+Your Profile
+</button>
+<button className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-cog mr-2 w-4 text-gray-400"></i>
+Settings
+</button>
+<button className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-moon mr-2 w-4 text-gray-400"></i>
+Appearance
+</button>
+<div className="border-t border-gray-700 my-1"></div>
+<button className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-question-circle mr-2 w-4 text-gray-400"></i>
+Help & Support
+</button>
+<button className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-comment-alt mr-2 w-4 text-gray-400"></i>
+Send Feedback
+</button>
+<div className="border-t border-gray-700 my-1"></div>
+<button className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-[#252530] rounded-md flex items-center cursor-pointer" role="menuitem">
+<i className="fas fa-sign-out-alt mr-2 w-4"></i>
+Sign Out
+</button>
+</div>
+</div>
+)}
+</div>
+</div>
+</div>
+</header>
+{/* Main Content */}
+<div className="flex h-[calc(100vh-64px)]">
+{/* Sidebar */}
+<div className="w-16 bg-[#13131b] border-r border-gray-800 flex flex-col items-center py-6">
+<Button variant="ghost" size="icon" className="text-gray-500 mb-6 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-home"></i>
+</Button>
+<a
+href="https://readdy.ai/home/d06afc50-29d6-42d6-a954-e6f8a0b7deb1/15ac6e7a-19ae-41b2-9536-98219060b3cf"
+data-readdy="true"
+>
+<Button variant="ghost" size="icon" className="text-white mb-4 bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-chart-bar"></i>
+</Button>
+</a>
+<a
+href="https://readdy.ai/home/d06afc50-29d6-42d6-a954-e6f8a0b7deb1/247f0f6b-afa5-484c-a6fa-b0c39e91f825"
+data-readdy="true"
+>
+<Button variant="ghost" size="icon" className="text-gray-500 mb-4 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-robot"></i>
+</Button>
+</a>
+<Button variant="ghost" size="icon" className="text-gray-500 mb-4 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-database"></i>
+</Button>
+<Button variant="ghost" size="icon" className="text-gray-500 mb-4 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-layer-group"></i>
+</Button>
+<Button variant="ghost" size="icon" className="text-gray-500 mb-4 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-code"></i>
+</Button>
+<div className="flex-grow"></div>
+<Button variant="ghost" size="icon" className="text-gray-500 mb-4 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-cog"></i>
+</Button>
+<Button variant="ghost" size="icon" className="text-gray-500 hover:bg-[#252530] hover:text-white !rounded-button cursor-pointer">
+<i className="fas fa-question-circle"></i>
+</Button>
+</div>
+{/* Content */}
+<div className="flex-1 overflow-auto bg-[#0f0f13]">
+<div className="p-8 max-w-7xl mx-auto">
+<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+<div>
+<div className="flex items-center text-sm text-gray-400 mb-2">
+<a
+href="https://readdy.ai/home/d06afc50-29d6-42d6-a954-e6f8a0b7deb1/15ac6e7a-19ae-41b2-9536-98219060b3cf"
+className="hover:text-blue-400 transition-colors cursor-pointer"
+data-readdy="true"
+>
+Dashboard
+</a>
+<i className="fas fa-chevron-right mx-2 text-xs"></i>
+<span className="text-white">Analytics</span>
+</div>
+<h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+<p className="text-gray-400 mt-1">Comprehensive metrics and performance analysis</p>
+</div>
+<div className="mt-4 md:mt-0 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 w-full md:w-auto">
+<div className="relative">
+<Popover>
+<PopoverTrigger asChild>
+<Button variant="outline" className="bg-[#161620] border-gray-700 text-gray-300 hover:bg-[#252530] hover:text-white !rounded-button whitespace-nowrap cursor-pointer">
+<i className="fas fa-calendar-alt mr-2"></i>
+{selectedTimeframe === "custom"
+? `${dateRange.from?.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString()}`
+: selectedTimeframe === "24h" ? "Last 24 hours"
+: selectedTimeframe === "7d" ? "Last 7 days"
+: selectedTimeframe === "30d" ? "Last 30 days"
+: selectedTimeframe === "90d" ? "Last 90 days"
+: "Custom range"
+}
+<i className="fas fa-chevron-down ml-2 text-xs"></i>
+</Button>
+</PopoverTrigger>
+<PopoverContent className="w-auto p-0 bg-[#1a1a25] border-gray-700">
+<div className="p-3 border-b border-gray-700">
+<div className="space-y-2">
+<Button
+variant="ghost"
+size="sm"
+className={`w-full justify-start text-left ${selectedTimeframe === "24h" ? "bg-[#252530] text-white" : "text-gray-300 hover:bg-[#252530] hover:text-white"} !rounded-button whitespace-nowrap cursor-pointer`}
+onClick={() => setSelectedTimeframe("24h")}
+>
+Last 24 hours
+</Button>
+<Button
+variant="ghost"
+size="sm"
+className={`w-full justify-start text-left ${selectedTimeframe === "7d" ? "bg-[#252530] text-white" : "text-gray-300 hover:bg-[#252530] hover:text-white"} !rounded-button whitespace-nowrap cursor-pointer`}
+onClick={() => setSelectedTimeframe("7d")}
+>
+Last 7 days
+</Button>
+<Button
+variant="ghost"
+size="sm"
+className={`w-full justify-start text-left ${selectedTimeframe === "30d" ? "bg-[#252530] text-white" : "text-gray-300 hover:bg-[#252530] hover:text-white"} !rounded-button whitespace-nowrap cursor-pointer`}
+onClick={() => setSelectedTimeframe("30d")}
+>
+Last 30 days
+</Button>
+<Button
+variant="ghost"
+size="sm"
+className={`w-full justify-start text-left ${selectedTimeframe === "90d" ? "bg-[#252530] text-white" : "text-gray-300 hover:bg-[#252530] hover:text-white"} !rounded-button whitespace-nowrap cursor-pointer`}
+onClick={() => setSelectedTimeframe("90d")}
+>
+Last 90 days
+</Button>
+</div>
+</div>
+<div className="p-3 border-b border-gray-700">
+<div className="flex flex-col space-y-2">
+<div className="grid grid-cols-2 gap-2">
+<div>
+<p className="text-xs text-gray-400 mb-1">Start date</p>
+<Calendar
+mode="single"
+selected={dateRange.from}
+onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+disabled={(date) => date > new Date() || (dateRange.to ? date > dateRange.to : false)}
+className="bg-[#1a1a25] border-gray-700 rounded-md"
+/>
+</div>
+<div>
+<p className="text-xs text-gray-400 mb-1">End date</p>
+<Calendar
+mode="single"
+selected={dateRange.to}
+onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+disabled={(date) => date > new Date() || (dateRange.from ? date < dateRange.from : false)}
+className="bg-[#1a1a25] border-gray-700 rounded-md"
+/>
+</div>
+</div>
+<Button
+className="bg-blue-600 hover:bg-blue-700 text-white !rounded-button whitespace-nowrap cursor-pointer"
+onClick={() => {
+if (dateRange.from && dateRange.to) {
+setSelectedTimeframe("custom");
+}
+}}
+>
+Apply Custom Range
+</Button>
+</div>
+</div>
+</PopoverContent>
+</Popover>
+</div>
+<Select value={selectedFilter} onValueChange={setSelectedFilter}>
+<SelectTrigger className="bg-[#161620] border-gray-700 text-gray-300 hover:bg-[#252530] hover:text-white">
+<div className="flex items-center">
+<i className="fas fa-filter mr-2"></i>
+<SelectValue placeholder="Filter by component" />
+</div>
+</SelectTrigger>
+<SelectContent className="bg-[#1a1a25] border-gray-700">
+<SelectItem value="all">All Components</SelectItem>
+<SelectItem value="generate">Text Generation</SelectItem>
+<SelectItem value="translate">Translation</SelectItem>
+<SelectItem value="analyze">Text Analysis</SelectItem>
+<SelectItem value="models">Model Selection</SelectItem>
+<SelectItem value="usage">Usage Statistics</SelectItem>
+</SelectContent>
+</Select>
+<div className="relative">
+<Button
+variant="outline"
+className="bg-[#161620] border-gray-700 text-gray-300 hover:bg-[#252530] hover:text-white !rounded-button whitespace-nowrap cursor-pointer"
+onClick={() => setShowExportOptions(!showExportOptions)}
+>
+<i className="fas fa-download mr-2"></i>
+Export
+<i className="fas fa-chevron-down ml-2 text-xs"></i>
+</Button>
+{showExportOptions && (
+<div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-[#1a1a25] border border-gray-700 z-10">
+<div className="py-1">
+<button
+className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#252530] flex items-center cursor-pointer"
+onClick={() => setExportFormat("csv")}
+>
+<i className={`fas fa-check mr-2 ${exportFormat === "csv" ? "text-blue-400" : "opacity-0"}`}></i>
+CSV Format
+</button>
+<button
+className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#252530] flex items-center cursor-pointer"
+onClick={() => setExportFormat("json")}
+>
+<i className={`fas fa-check mr-2 ${exportFormat === "json" ? "text-blue-400" : "opacity-0"}`}></i>
+JSON Format
+</button>
+<button
+className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#252530] flex items-center cursor-pointer"
+onClick={() => setExportFormat("pdf")}
+>
+<i className={`fas fa-check mr-2 ${exportFormat === "pdf" ? "text-blue-400" : "opacity-0"}`}></i>
+PDF Report
+</button>
+<button
+className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-[#252530] flex items-center cursor-pointer"
+onClick={() => setExportFormat("excel")}
+>
+<i className={`fas fa-check mr-2 ${exportFormat === "excel" ? "text-blue-400" : "opacity-0"}`}></i>
+Excel Spreadsheet
+</button>
+<div className="border-t border-gray-700 my-1"></div>
+<button className="w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#252530] flex items-center cursor-pointer">
+<i className="fas fa-calendar-alt mr-2"></i>
+Schedule Reports
+</button>
+</div>
+</div>
+)}
+</div>
+<Button className="bg-blue-600 hover:bg-blue-700 text-white !rounded-button whitespace-nowrap cursor-pointer">
+<i className="fas fa-sync-alt mr-2"></i>
+Refresh
+</Button>
+</div>
+</div>
+{/* Key Metrics */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<Card className="bg-gradient-to-br from-[#1a1a25] to-[#161620] border-gray-800 overflow-hidden">
+<CardContent className="p-6">
+<div className="flex justify-between items-start">
+<div>
+<p className="text-sm text-gray-400 mb-1">Total API Calls</p>
+<h3 className="text-3xl font-bold">24,892</h3>
+<p className="text-sm text-green-400 mt-2 flex items-center">
+<i className="fas fa-arrow-up mr-1"></i>
+12.5% from last period
+</p>
+</div>
+<div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+<i className="fas fa-bolt text-blue-400 text-xl"></i>
+</div>
+</div>
+<div className="mt-4 h-10">
+<div className="w-full h-1 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-blue-500 rounded-full" style={{ width: '65%' }}></div>
+</div>
+<div className="flex justify-between text-xs text-gray-400 mt-1">
+<span>0</span>
+<span>Target: 38,000</span>
+</div>
+</div>
+</CardContent>
+</Card>
+<Card className="bg-gradient-to-br from-[#1a1a25] to-[#161620] border-gray-800 overflow-hidden">
+<CardContent className="p-6">
+<div className="flex justify-between items-start">
+<div>
+<p className="text-sm text-gray-400 mb-1">Active Users</p>
+<h3 className="text-3xl font-bold">1,284</h3>
+<p className="text-sm text-green-400 mt-2 flex items-center">
+<i className="fas fa-arrow-up mr-1"></i>
+8.2% from last period
+</p>
+</div>
+<div className="h-12 w-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+<i className="fas fa-users text-purple-400 text-xl"></i>
+</div>
+</div>
+<div className="mt-4 h-10">
+<div className="w-full h-1 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-purple-500 rounded-full" style={{ width: '85%' }}></div>
+</div>
+<div className="flex justify-between text-xs text-gray-400 mt-1">
+<span>0</span>
+<span>Target: 1,500</span>
+</div>
+</div>
+</CardContent>
+</Card>
+<Card className="bg-gradient-to-br from-[#1a1a25] to-[#161620] border-gray-800 overflow-hidden">
+<CardContent className="p-6">
+<div className="flex justify-between items-start">
+<div>
+<p className="text-sm text-gray-400 mb-1">Avg Response Time</p>
+<h3 className="text-3xl font-bold">245ms</h3>
+<p className="text-sm text-red-400 mt-2 flex items-center">
+<i className="fas fa-arrow-up mr-1"></i>
+3.1% from last period
+</p>
+</div>
+<div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
+<i className="fas fa-tachometer-alt text-green-400 text-xl"></i>
+</div>
+</div>
+<div className="mt-4 h-10">
+<div className="w-full h-1 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-green-500 rounded-full" style={{ width: '40%' }}></div>
+</div>
+<div className="flex justify-between text-xs text-gray-400 mt-1">
+<span>0ms</span>
+<span>Target: &lt;200ms</span>
+</div>
+</div>
+</CardContent>
+</Card>
+<Card className="bg-gradient-to-br from-[#1a1a25] to-[#161620] border-gray-800 overflow-hidden">
+<CardContent className="p-6">
+<div className="flex justify-between items-start">
+<div>
+<p className="text-sm text-gray-400 mb-1">Success Rate</p>
+<h3 className="text-3xl font-bold">99.2%</h3>
+<p className="text-sm text-green-400 mt-2 flex items-center">
+<i className="fas fa-arrow-up mr-1"></i>
+0.5% from last period
+</p>
+</div>
+<div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+<i className="fas fa-check-circle text-orange-400 text-xl"></i>
+</div>
+</div>
+<div className="mt-4 h-10">
+<div className="w-full h-1 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-orange-500 rounded-full" style={{ width: '99%' }}></div>
+</div>
+<div className="flex justify-between text-xs text-gray-400 mt-1">
+<span>0%</span>
+<span>Target: 99.9%</span>
+</div>
+</div>
+</CardContent>
+</Card>
+</div>
+{/* Main Charts */}
+<div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+<Card className="bg-[#161620] border-gray-800 lg:col-span-3">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>API Usage Trends</CardTitle>
+<CardDescription className="text-gray-400">
+Daily API call volume over time
+</CardDescription>
+</div>
+<div className="flex space-x-1">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-expand-alt text-sm"></i>
+</Button>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[350px]" ref={apiUsageChartRef}></div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800 lg:col-span-2">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Usage by Endpoint</CardTitle>
+<CardDescription className="text-gray-400">
+Distribution across API endpoints
+</CardDescription>
+</div>
+<div className="flex space-x-1">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-expand-alt text-sm"></i>
+</Button>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[350px]" ref={endpointUsageChartRef}></div>
+</CardContent>
+</Card>
+</div>
+{/* Performance Metrics */}
+<h2 className="text-xl font-bold mb-4">Performance Metrics</h2>
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Response Time Distribution</CardTitle>
+<CardDescription className="text-gray-400">
+Frequency by response time
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[250px]" ref={responseTimeChartRef}></div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Error Rate by Endpoint</CardTitle>
+<CardDescription className="text-gray-400">
+Distribution of errors across endpoints
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[250px]" ref={errorRateChartRef}></div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Geographic Distribution</CardTitle>
+<CardDescription className="text-gray-400">
+API usage by region
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[250px]" ref={geoDistributionChartRef}></div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Peak Usage Periods</CardTitle>
+<CardDescription className="text-gray-400">
+API calls by time of day
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="h-[250px]" ref={peakUsageChartRef}></div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Model Performance</CardTitle>
+<CardDescription className="text-gray-400">
+Comparison by AI model
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="space-y-4">
+<div>
+<div className="flex justify-between items-center mb-1">
+<div className="flex items-center">
+<div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+<span className="text-sm">GPT-4</span>
+</div>
+<span className="text-sm font-medium">92%</span>
+</div>
+<div className="w-full h-2 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-blue-500 rounded-full" style={{ width: '92%' }}></div>
+</div>
+</div>
+<div>
+<div className="flex justify-between items-center mb-1">
+<div className="flex items-center">
+<div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+<span className="text-sm">Claude-3</span>
+</div>
+<span className="text-sm font-medium">88%</span>
+</div>
+<div className="w-full h-2 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-purple-500 rounded-full" style={{ width: '88%' }}></div>
+</div>
+</div>
+<div>
+<div className="flex justify-between items-center mb-1">
+<div className="flex items-center">
+<div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+<span className="text-sm">Mistral-Large</span>
+</div>
+<span className="text-sm font-medium">85%</span>
+</div>
+<div className="w-full h-2 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-green-500 rounded-full" style={{ width: '85%' }}></div>
+</div>
+</div>
+<div>
+<div className="flex justify-between items-center mb-1">
+<div className="flex items-center">
+<div className="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+<span className="text-sm">Llama-3</span>
+</div>
+<span className="text-sm font-medium">79%</span>
+</div>
+<div className="w-full h-2 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-orange-500 rounded-full" style={{ width: '79%' }}></div>
+</div>
+</div>
+<div>
+<div className="flex justify-between items-center mb-1">
+<div className="flex items-center">
+<div className="w-3 h-3 rounded-full bg-pink-500 mr-2"></div>
+<span className="text-sm">GPT-3.5</span>
+</div>
+<span className="text-sm font-medium">76%</span>
+</div>
+<div className="w-full h-2 bg-[#252530] rounded-full overflow-hidden">
+<div className="h-full bg-pink-500 rounded-full" style={{ width: '76%' }}></div>
+</div>
+</div>
+</div>
+</CardContent>
+</Card>
+<Card className="bg-[#161620] border-gray-800">
+<CardHeader className="pb-0">
+<div className="flex justify-between items-start">
+<div>
+<CardTitle>Resource Utilization</CardTitle>
+<CardDescription className="text-gray-400">
+System resource metrics
+</CardDescription>
+</div>
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</div>
+</CardHeader>
+<CardContent className="p-4">
+<div className="space-y-6">
+<div>
+<div className="flex justify-between mb-1">
+<span className="text-sm">CPU Usage</span>
+<span className="text-sm font-medium">42%</span>
+</div>
+<Slider
+defaultValue={[42]}
+max={100}
+step={1}
+disabled
+className="cursor-default"
+/>
+</div>
+<div>
+<div className="flex justify-between mb-1">
+<span className="text-sm">Memory Usage</span>
+<span className="text-sm font-medium">68%</span>
+</div>
+<Slider
+defaultValue={[68]}
+max={100}
+step={1}
+disabled
+className="cursor-default"
+/>
+</div>
+<div>
+<div className="flex justify-between mb-1">
+<span className="text-sm">Disk I/O</span>
+<span className="text-sm font-medium">23%</span>
+</div>
+<Slider
+defaultValue={[23]}
+max={100}
+step={1}
+disabled
+className="cursor-default"
+/>
+</div>
+<div>
+<div className="flex justify-between mb-1">
+<span className="text-sm">Network Bandwidth</span>
+<span className="text-sm font-medium">56%</span>
+</div>
+<Slider
+defaultValue={[56]}
+max={100}
+step={1}
+disabled
+className="cursor-default"
+/>
+</div>
+</div>
+</CardContent>
+</Card>
+</div>
+{/* Recent API Calls */}
+<h2 className="text-xl font-bold mb-4">Recent API Calls</h2>
+<Card className="bg-[#161620] border-gray-800 mb-6">
+<CardContent className="p-0">
+<ScrollArea className="h-[400px]">
+<Table>
+<TableHeader className="bg-[#1a1a25] sticky top-0">
+<TableRow className="border-gray-800">
+<TableHead className="text-gray-400 w-[180px]">Timestamp</TableHead>
+<TableHead className="text-gray-400">Endpoint</TableHead>
+<TableHead className="text-gray-400">Model</TableHead>
+<TableHead className="text-gray-400">Response Time</TableHead>
+<TableHead className="text-gray-400">Status</TableHead>
+<TableHead className="text-gray-400 text-right">Actions</TableHead>
+</TableRow>
+</TableHeader>
+<TableBody>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:32:15</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/generate</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">gpt-4</TableCell>
+<TableCell className="text-gray-300">245ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:31:48</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/translate</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">claude-3</TableCell>
+<TableCell className="text-gray-300">189ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:30:22</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/analyze</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">mistral-large</TableCell>
+<TableCell className="text-gray-300">312ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:29:05</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-green-500/20 text-green-400 border-none mr-2 !rounded-button whitespace-nowrap">GET</Badge>
+<span className="text-gray-300">/api/v1/models</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">-</TableCell>
+<TableCell className="text-gray-300">98ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:28:17</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/generate</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">gpt-4</TableCell>
+<TableCell className="text-gray-300">543ms</TableCell>
+<TableCell>
+<Badge className="bg-red-500/20 text-red-400 border-none !rounded-button whitespace-nowrap">
+Error
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:27:56</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-green-500/20 text-green-400 border-none mr-2 !rounded-button whitespace-nowrap">GET</Badge>
+<span className="text-gray-300">/api/v1/usage</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">-</TableCell>
+<TableCell className="text-gray-300">112ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:26:42</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/translate</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">llama-3</TableCell>
+<TableCell className="text-gray-300">267ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="text-gray-300">2025-04-09 14:25:19</TableCell>
+<TableCell>
+<div className="flex items-center">
+<Badge className="bg-blue-500/20 text-blue-400 border-none mr-2 !rounded-button whitespace-nowrap">POST</Badge>
+<span className="text-gray-300">/api/v1/analyze</span>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">claude-3</TableCell>
+<TableCell className="text-gray-300">298ms</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Success
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-eye text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+</TableBody>
+</Table>
+</ScrollArea>
+</CardContent>
+<CardFooter className="flex justify-between p-4 border-t border-gray-800">
+<div className="text-sm text-gray-400">
+Showing 8 of 1,284 records
+</div>
+<div className="flex items-center space-x-2">
+<Button variant="outline" size="sm" className="bg-[#1a1a25] border-gray-700 text-gray-300 hover:bg-[#252530] hover:text-white !rounded-button whitespace-nowrap cursor-pointer">
+<i className="fas fa-chevron-left mr-1"></i>
+Previous
+</Button>
+<Button variant="outline" size="sm" className="bg-[#1a1a25] border-gray-700 text-gray-300 hover:bg-[#252530] hover:text-white !rounded-button whitespace-nowrap cursor-pointer">
+Next
+<i className="fas fa-chevron-right ml-1"></i>
+</Button>
+</div>
+</CardFooter>
+</Card>
+{/* Scheduled Reports */}
+<h2 className="text-xl font-bold mb-4">Scheduled Reports</h2>
+<Card className="bg-[#161620] border-gray-800 mb-6">
+<CardContent className="p-0">
+<Table>
+<TableHeader className="bg-[#1a1a25]">
+<TableRow className="border-gray-800">
+<TableHead className="text-gray-400">Report Name</TableHead>
+<TableHead className="text-gray-400">Frequency</TableHead>
+<TableHead className="text-gray-400">Recipients</TableHead>
+<TableHead className="text-gray-400">Format</TableHead>
+<TableHead className="text-gray-400">Last Sent</TableHead>
+<TableHead className="text-gray-400">Status</TableHead>
+<TableHead className="text-gray-400 text-right">Actions</TableHead>
+</TableRow>
+</TableHeader>
+<TableBody>
+<TableRow className="border-gray-800">
+<TableCell className="font-medium">Monthly Performance Report</TableCell>
+<TableCell className="text-gray-300">Monthly</TableCell>
+<TableCell>
+<div className="flex -space-x-2">
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://public.readdy.ai/ai/img_res/8c46a9e3551a9d16e621988ad66373b1.jpg" />
+<AvatarFallback>JD</AvatarFallback>
+</Avatar>
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://public.readdy.ai/ai/img_res/f34fdc67bf2e03bcaa98a07d0688c45b.jpg" />
+<AvatarFallback>AS</AvatarFallback>
+</Avatar>
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://public.readdy.ai/ai/img_res/19899872a41aed9af542e2f7dcfba258.jpg" />
+<AvatarFallback>SL</AvatarFallback>
+</Avatar>
+<div className="h-6 w-6 rounded-full bg-[#252530] border-2 border-[#161620] flex items-center justify-center text-xs text-gray-400">
++2
+</div>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">PDF, Excel</TableCell>
+<TableCell className="text-gray-300">2025-03-31</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Active
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="font-medium">Weekly API Usage Summary</TableCell>
+<TableCell className="text-gray-300">Weekly</TableCell>
+<TableCell>
+<div className="flex -space-x-2">
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://readdy.ai/api/search-image?query=professional looking avatar photo of a person with neutral expression, high quality, minimalist style, suitable for profile picture, on dark background&width=100&height=100&seq=9&orientation=squarish" />
+<AvatarFallback>JD</AvatarFallback>
+</Avatar>
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://readdy.ai/api/search-image?query=professional looking avatar photo of a person with neutral expression, high quality, minimalist style, suitable for profile picture, on dark background&width=100&height=100&seq=10&orientation=squarish" />
+<AvatarFallback>AS</AvatarFallback>
+</Avatar>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">CSV, JSON</TableCell>
+<TableCell className="text-gray-300">2025-04-07</TableCell>
+<TableCell>
+<Badge className="bg-green-500/20 text-green-400 border-none !rounded-button whitespace-nowrap">
+Active
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+<TableRow className="border-gray-800">
+<TableCell className="font-medium">Daily Error Report</TableCell>
+<TableCell className="text-gray-300">Daily</TableCell>
+<TableCell>
+<div className="flex -space-x-2">
+<Avatar className="h-6 w-6 border-2 border-[#161620]">
+<AvatarImage src="https://readdy.ai/api/search-image?query=professional looking avatar photo of a person with neutral expression, high quality, minimalist style, suitable for profile picture, on dark background&width=100&height=100&seq=11&orientation=squarish" />
+<AvatarFallback>SL</AvatarFallback>
+</Avatar>
+</div>
+</TableCell>
+<TableCell className="text-gray-300">CSV</TableCell>
+<TableCell className="text-gray-300">2025-04-09</TableCell>
+<TableCell>
+<Badge className="bg-yellow-500/20 text-yellow-400 border-none !rounded-button whitespace-nowrap">
+Paused
+</Badge>
+</TableCell>
+<TableCell className="text-right">
+<Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-[#252530] !rounded-button cursor-pointer">
+<i className="fas fa-ellipsis-v text-sm"></i>
+</Button>
+</TableCell>
+</TableRow>
+</TableBody>
+</Table>
+</CardContent>
+<CardFooter className="flex justify-end p-4 border-t border-gray-800">
+<Button className="bg-blue-600 hover:bg-blue-700 text-white !rounded-button whitespace-nowrap cursor-pointer">
+<i className="fas fa-plus mr-2"></i>
+Create New Report
+</Button>
+</CardFooter>
+</Card>
+{/* Footer */}
+<footer className="mt-12 mb-6 text-center text-sm text-gray-500">
+<p>© 2025 Databutton. All rights reserved.</p>
+<p className="mt-1">Last updated: April 9, 2025 at 14:32</p>
+</footer>
+</div>
+</div>
+</div>
+</div>
+);
+};
+export default App
